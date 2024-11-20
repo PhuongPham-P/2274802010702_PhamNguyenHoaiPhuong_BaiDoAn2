@@ -2,33 +2,42 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import psycopg2
 
-# Kết nối cơ sở dữ liệu PostgreSQL
-def connect_db():
-    try:
-        conn = psycopg2.connect(
-        host="localhost",  
-        database="baiktr",
-        user="postgres",
-        password="1"
-        )
-        return conn
-    except Exception as e:
-        messagebox.showerror("Lỗi cơ sở dữ liệu", str(e))
-        return None
+# Kết nối cơ sở dữ liệu PostgreSQL một lần
+class DatabaseConnection:
+    def __init__(self):
+        try:
+            self.conn = psycopg2.connect(
+                host="localhost",
+                database="baiktr",
+                user="postgres",
+                password="1"
+            )
+        except Exception as e:
+            messagebox.showerror("Lỗi cơ sở dữ liệu", str(e))
+            self.conn = None
+
+    def get_connection(self):
+        return self.conn
+
+    def close_connection(self):
+        if self.conn:
+            self.conn.close()
+
+# Khởi tạo đối tượng kết nối cơ sở dữ liệu
+db_connection = DatabaseConnection()
 
 # Các hàm thao tác với cơ sở dữ liệu
 def fetch_students():
-    conn = connect_db()
+    conn = db_connection.get_connection()
     if conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM students")
         rows = cursor.fetchall()
-        conn.close()
         return rows
     return []
 
 def insert_student(name, age, gender, major):
-    conn = connect_db()
+    conn = db_connection.get_connection()
     if conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -36,10 +45,9 @@ def insert_student(name, age, gender, major):
             (name, age, gender, major)
         )
         conn.commit()
-        conn.close()
 
 def update_student(student_id, name, age, gender, major):
-    conn = connect_db()
+    conn = db_connection.get_connection()
     if conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -47,15 +55,13 @@ def update_student(student_id, name, age, gender, major):
             (name, age, gender, major, student_id)
         )
         conn.commit()
-        conn.close()
 
 def delete_student(student_id):
-    conn = connect_db()
+    conn = db_connection.get_connection()
     if conn:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM students WHERE id=%s", (student_id,))
         conn.commit()
-        conn.close()
 
 # Lớp ứng dụng chính
 class StudentApp:
@@ -162,3 +168,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = StudentApp(root)
     root.mainloop()
+    # Đóng kết nối cơ sở dữ liệu khi ứng dụng kết thúc
+    db_connection.close_connection()
